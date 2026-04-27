@@ -143,6 +143,11 @@ async def saludar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(mensaje_bienvenida, parse_mode="Markdown")
 
 
+async def saludo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a simple greeting message."""
+    await update.message.reply_text("HolaAaA")
+
+
 async def castigar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Command: /castigar @user
@@ -400,6 +405,7 @@ def main() -> None:
     app.add_handler(CommandHandler("NumAzar", numero_azar), group=2)
     app.add_handler(CommandHandler("id", get_theme_id), group=2)
     app.add_handler(CommandHandler("saludar", saludar), group=2)
+    app.add_handler(CommandHandler("saludo", saludo), group=2)
     app.add_handler(CommandHandler("AsignarRol", asignar_rol), group=2)
     app.add_handler(CommandHandler("MiRol", ver_rol), group=2)
     app.add_handler(CommandHandler("Suerte", suerte), group=2)
