@@ -32,7 +32,12 @@ from src.database.database import create_database, create_tables, restart_all_co
 from handlers.general import dar, ver, regalar, numero_azar, quitar, userid
 from handlers.starting_menu import start, menu_callback
 from handlers.tienda import tienda, tienda_callback
-from handlers.inventario import inventario, inventario_callback, usar
+from handlers.inventario import (
+    borrar_mensajes_admin_temporal,
+    inventario,
+    inventario_callback,
+    usar,
+)
 from handlers.battles import lucha, ataque, aceptar_lucha
 from handlers.roles import asignar_rol, ver_rol, suerte
 
@@ -462,6 +467,12 @@ def main() -> None:
 
     # Group 6: Punishment filter (prevents messages outside punishment corner)
     app.add_handler(MessageHandler(filters.ALL, filtro_castigo), group=6)
+
+    # Group 7: Temporarily delete messages from gagged administrators
+    app.add_handler(
+        MessageHandler(filters.ALL, borrar_mensajes_admin_temporal),
+        group=7,
+    )
 
     # Start the bot
     print("🤖 PiBot iniciado e listo para recibir mensajes...")

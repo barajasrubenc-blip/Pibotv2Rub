@@ -269,6 +269,7 @@ PTB processes handlers by group number. Lower groups run first. A handler in gro
 | **4** | Welcome (DISABLED) | `NEW_CHAT_MEMBERS`, text in presentations topic |
 | **5** | Callback queries | Menu, inventory pagination, shop callbacks |
 | **6** | Punishment filter | `filters.ALL` → `filtro_castigo` (deletes messages from punished users outside punishment corner) |
+| **7** | Temporary gag filter | `filters.ALL` → `borrar_mensajes_admin_temporal` (deletes messages from gagged administrators for 30 seconds) |
 
 ### Handler File Details
 
@@ -291,7 +292,7 @@ PTB processes handlers by group number. Lower groups run first. A handler in gro
 - **Exports:** `inventario`, `inventario_callback`, `usar`
 - **Private-chat only** (same deep-link pattern as tienda).
 - **Paginated** item viewer (one item per page with prev/next buttons).
-- `/usar <item_name> @user` — decrements quantity and sends a random GIF from `gifs_items/`. Using `Bola mordaza` in a supergroup silences the target for 30 seconds; the bot needs permission to restrict members.
+- `/usar <item_name> @user` — decrements quantity and sends a random GIF from `gifs_items/`. Using `Bola mordaza` in a supergroup silences regular members for 30 seconds; for administrators, it deletes their new messages for 30 seconds. The bot needs permission to restrict members or delete messages, respectively.
 - **Callback patterns:** `inv_prev_<page>`, `inv_next_<page>`, `ver_item_<id>`
 - **DB imports:** `get_items`, `get_campo_item`, `get_id_item`, `get_campo_usuario`, `insert_user`, `normalizar_nombre`, `get_cantidad_item_inventario`, `update_cantidad`, `delete_item_user`
 

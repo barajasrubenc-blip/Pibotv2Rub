@@ -29,6 +29,7 @@ from handlers.general import get_receptor
 from handlers.tienda import mostrar_item
 
 _silencios_temporales = {}
+_borrados_admin_temporales = {}
 
 
 async def _restaurar_permisos_despues_de_silencio(
@@ -50,6 +51,36 @@ async def _restaurar_permisos_despues_de_silencio(
     finally:
         if _silencios_temporales.get((chat_id, user_id)) is task:
             _silencios_temporales.pop((chat_id, user_id), None)
+
+
+async def _finalizar_borrado_admin_temporal(chat_id: int, user_id: int) -> None:
+    task = asyncio.current_task()
+    try:
+        await asyncio.sleep(30)
+    finally:
+        clave = (chat_id, user_id)
+        if _borrados_admin_temporales.get(clave) is task:
+            _borrados_admin_temporales.pop(clave, None)
+
+
+async def borrar_mensajes_admin_temporal(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> None:
+    message = update.effective_message
+    user = update.effective_user
+    chat = update.effective_chat
+    if not message or not user or not chat:
+        return
+
+    if (chat.id, user.id) not in _borrados_admin_temporales:
+        return
+
+    try:
+        await message.delete()
+    except TelegramError as exc:
+        print(f"[WARNING] No se pudo borrar un mensaje del administrador {user.id}: {exc}")
+
 
 def obtener_gif_aleatorio(nombre_producto):
     nombre_carpeta = nombre_producto.lower()
@@ -301,47 +332,75 @@ async def usar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             miembro = await context.bot.get_chat_member(chat.id, receptor.id)
             if miembro.status in ("administrator", "creator"):
-                await update.message.reply_text(
-                    "❌ No se puede silenciar a un administrador; no se consumió la bola mordaza."
-                )
-                return
-            if miembro.status == "restricted" and miembro.is_member:
-                permisos_previos = ChatPermissions(
-                    can_send_messages=miembro.can_send_messages,
-                    can_send_audios=miembro.can_send_audios,
-                    can_send_documents=miembro.can_send_documents,
-                    can_send_photos=miembro.can_send_photos,
-                    can_send_videos=miembro.can_send_videos,
-                    can_send_video_notes=miembro.can_send_video_notes,
-                    can_send_voice_notes=miembro.can_send_voice_notes,
-                    can_send_polls=miembro.can_send_polls,
-                    can_send_other_messages=miembro.can_send_other_messages,
-                    can_add_web_page_previews=miembro.can_add_web_page_previews,
-                    can_change_info=miembro.can_change_info,
-                    can_invite_users=miembro.can_invite_users,
-                    can_pin_messages=miembro.can_pin_messages,
-                    can_manage_topics=miembro.can_manage_topics,
-                )
-            elif miembro.status == "member":
-                info_chat = await context.bot.get_chat(chat.id)
-                permisos_previos = info_chat.permissions
-                if permisos_previos is None:
+                bot_miembro = await context.bot.get_chat_member(chat.id, context.bot.id)
+                if bot_miembro.status != "creator" and not (
+                    bot_miembro.status == "administrator"
+                    and bot_miembro.can_delete_messages
+                ):
                     await update.message.reply_text(
-                        "❌ No pude obtener los permisos del grupo; no se consumió la bola mordaza."
+                        "❌ El bot necesita permiso para eliminar mensajes y aplicar la bola mordaza a un administrador."
                     )
                     return
-            else:
-                await update.message.reply_text(
-                    "❌ El usuario no es un miembro silenciable de este grupo; no se consumió la bola mordaza."
-                )
-                return
 
-            await context.bot.restrict_chat_member(
-                chat_id=chat.id,
-                user_id=receptor.id,
-                permissions=ChatPermissions(can_send_messages=False),
-                until_date=datetime.now(timezone.utc) + timedelta(seconds=40),
-            )
+                clave_borrado = (chat.id, receptor.id)
+                tarea_anterior = _borrados_admin_temporales.get(clave_borrado)
+                if tarea_anterior:
+                    tarea_anterior.cancel()
+                _borrados_admin_temporales[clave_borrado] = context.application.create_task(
+                    _finalizar_borrado_admin_temporal(chat.id, receptor.id),
+                    update=update,
+                )
+            else:
+                if miembro.status == "restricted" and miembro.is_member:
+                    permisos_previos = ChatPermissions(
+                        can_send_messages=miembro.can_send_messages,
+                        can_send_audios=miembro.can_send_audios,
+                        can_send_documents=miembro.can_send_documents,
+                        can_send_photos=miembro.can_send_photos,
+                        can_send_videos=miembro.can_send_videos,
+                        can_send_video_notes=miembro.can_send_video_notes,
+                        can_send_voice_notes=miembro.can_send_voice_notes,
+                        can_send_polls=miembro.can_send_polls,
+                        can_send_other_messages=miembro.can_send_other_messages,
+                        can_add_web_page_previews=miembro.can_add_web_page_previews,
+                        can_change_info=miembro.can_change_info,
+                        can_invite_users=miembro.can_invite_users,
+                        can_pin_messages=miembro.can_pin_messages,
+                        can_manage_topics=miembro.can_manage_topics,
+                    )
+                elif miembro.status == "member":
+                    info_chat = await context.bot.get_chat(chat.id)
+                    permisos_previos = info_chat.permissions
+                    if permisos_previos is None:
+                        await update.message.reply_text(
+                            "❌ No pude obtener los permisos del grupo; no se consumió la bola mordaza."
+                        )
+                        return
+                else:
+                    await update.message.reply_text(
+                        "❌ El usuario no es un miembro silenciable de este grupo; no se consumió la bola mordaza."
+                    )
+                    return
+
+                await context.bot.restrict_chat_member(
+                    chat_id=chat.id,
+                    user_id=receptor.id,
+                    permissions=ChatPermissions(can_send_messages=False),
+                    until_date=datetime.now(timezone.utc) + timedelta(seconds=40),
+                )
+                clave_silencio = (chat.id, receptor.id)
+                tarea_anterior = _silencios_temporales.get(clave_silencio)
+                if tarea_anterior:
+                    tarea_anterior.cancel()
+                _silencios_temporales[clave_silencio] = context.application.create_task(
+                    _restaurar_permisos_despues_de_silencio(
+                        context.application,
+                        chat.id,
+                        receptor.id,
+                        permisos_previos,
+                    ),
+                    update=update,
+                )
         except TelegramError as exc:
             print(f"[WARNING] No se pudo silenciar al usuario {receptor.id}: {exc}")
             await update.message.reply_text(
@@ -349,20 +408,6 @@ async def usar(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "no se consumió la bola mordaza."
             )
             return
-
-        clave_silencio = (chat.id, receptor.id)
-        tarea_anterior = _silencios_temporales.get(clave_silencio)
-        if tarea_anterior:
-            tarea_anterior.cancel()
-        _silencios_temporales[clave_silencio] = context.application.create_task(
-            _restaurar_permisos_despues_de_silencio(
-                context.application,
-                chat.id,
-                receptor.id,
-                permisos_previos,
-            ),
-            update=update,
-        )
 
     # -------------------------------------
     # 6. Restar item
