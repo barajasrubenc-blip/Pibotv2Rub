@@ -1,10 +1,17 @@
 #inventario.py
+import asyncio
+from datetime import datetime, timedelta, timezone
+import os
+import random
+
 from telegram import (
+    ChatPermissions,
     Update,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     InputMediaPhoto
 )
+from telegram.error import TelegramError
 from telegram.ext import ContextTypes
 from src.database.database import (
     get_items,
@@ -20,8 +27,29 @@ from src.database.database import (
 from src.config import BOT_USERNAME
 from handlers.general import get_receptor
 from handlers.tienda import mostrar_item
-import os
-import random
+
+_silencios_temporales = {}
+
+
+async def _restaurar_permisos_despues_de_silencio(
+    application,
+    chat_id: int,
+    user_id: int,
+    permissions: ChatPermissions,
+) -> None:
+    task = asyncio.current_task()
+    try:
+        await asyncio.sleep(10)
+        await application.bot.restrict_chat_member(
+            chat_id=chat_id,
+            user_id=user_id,
+            permissions=permissions,
+        )
+    except TelegramError as exc:
+        print(f"[WARNING] No se pudieron restaurar los permisos del usuario {user_id}: {exc}")
+    finally:
+        if _silencios_temporales.get((chat_id, user_id)) is task:
+            _silencios_temporales.pop((chat_id, user_id), None)
 
 def obtener_gif_aleatorio(nombre_producto):
     nombre_carpeta = nombre_producto.lower()
@@ -261,6 +289,63 @@ async def usar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown"
         )
         return
+
+    nombre_real = get_campo_item(item_id, "nombre")
+    if nombre_real and nombre_real.casefold() == "bola mordaza":
+        if chat.type != "supergroup":
+            await update.message.reply_text(
+                "❌ La bola mordaza solo puede usarse en un supergrupo; no se consumió."
+            )
+            return
+
+        try:
+            miembro = await context.bot.get_chat_member(chat.id, receptor.id)
+            if miembro.status in ("administrator", "creator"):
+                await update.message.reply_text(
+                    "❌ No se puede silenciar a un administrador; no se consumió la bola mordaza."
+                )
+                return
+            if miembro.status != "member":
+                await update.message.reply_text(
+                    "❌ El usuario no es un miembro silenciable de este grupo; no se consumió la bola mordaza."
+                )
+                return
+
+            info_chat = await context.bot.get_chat(chat.id)
+            permisos_previos = info_chat.permissions
+            if permisos_previos is None:
+                await update.message.reply_text(
+                    "❌ No pude obtener los permisos del grupo; no se consumió la bola mordaza."
+                )
+                return
+
+            await context.bot.restrict_chat_member(
+                chat_id=chat.id,
+                user_id=receptor.id,
+                permissions=ChatPermissions(can_send_messages=False),
+                until_date=datetime.now(timezone.utc) + timedelta(seconds=30),
+            )
+        except TelegramError as exc:
+            print(f"[WARNING] No se pudo silenciar al usuario {receptor.id}: {exc}")
+            await update.message.reply_text(
+                "❌ No pude silenciar al usuario. Verifica que el bot tenga permisos de administrador; "
+                "no se consumió la bola mordaza."
+            )
+            return
+
+        clave_silencio = (chat.id, receptor.id)
+        tarea_anterior = _silencios_temporales.get(clave_silencio)
+        if tarea_anterior:
+            tarea_anterior.cancel()
+        _silencios_temporales[clave_silencio] = context.application.create_task(
+            _restaurar_permisos_despues_de_silencio(
+                context.application,
+                chat.id,
+                receptor.id,
+                permisos_previos,
+            ),
+            update=update,
+        )
 
     # -------------------------------------
     # 6. Restar item

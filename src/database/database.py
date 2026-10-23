@@ -199,7 +199,7 @@ def seed_items():
         },
         {
             "nombre": "Bola mordaza",
-            "precio": 200,
+            "precio": 1000,
             "imagen": "img_items/bola_mordaza.png",
             "descripcion": "Para cuando alguien habla demasiado",
             "mensaje": "🤏 {sender_username} Le ha puesto una bola mordaza a {receptor_username}\n Que bien te ves sin poder hablar 😖",
@@ -230,6 +230,11 @@ def seed_items():
                     "UPDATE items_tb SET descripcion = %s, mensaje = %s WHERE nombre = %s",
                     (item["descripcion"], item["mensaje"], item["nombre"]),
                 )
+                if item["nombre"] == "Bola mordaza":
+                    cursor.execute(
+                        "UPDATE items_tb SET precio = %s WHERE nombre = %s",
+                        (item["precio"], item["nombre"]),
+                    )
         conn.commit()
     except Exception as e:
         conn.rollback()
