@@ -300,27 +300,39 @@ async def usar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         try:
             miembro = await context.bot.get_chat_member(chat.id, receptor.id)
-            print(
-                "[DEBUG] Bola mordaza get_chat_member: "
-                f"status={miembro.status}, "
-                f"is_member={getattr(miembro, 'is_member', None)}"
-            )
             if miembro.status in ("administrator", "creator"):
                 await update.message.reply_text(
                     "❌ No se puede silenciar a un administrador; no se consumió la bola mordaza."
                 )
                 return
-            if miembro.status != "member":
+            if miembro.status == "restricted" and miembro.is_member:
+                permisos_previos = ChatPermissions(
+                    can_send_messages=miembro.can_send_messages,
+                    can_send_audios=miembro.can_send_audios,
+                    can_send_documents=miembro.can_send_documents,
+                    can_send_photos=miembro.can_send_photos,
+                    can_send_videos=miembro.can_send_videos,
+                    can_send_video_notes=miembro.can_send_video_notes,
+                    can_send_voice_notes=miembro.can_send_voice_notes,
+                    can_send_polls=miembro.can_send_polls,
+                    can_send_other_messages=miembro.can_send_other_messages,
+                    can_add_web_page_previews=miembro.can_add_web_page_previews,
+                    can_change_info=miembro.can_change_info,
+                    can_invite_users=miembro.can_invite_users,
+                    can_pin_messages=miembro.can_pin_messages,
+                    can_manage_topics=miembro.can_manage_topics,
+                )
+            elif miembro.status == "member":
+                info_chat = await context.bot.get_chat(chat.id)
+                permisos_previos = info_chat.permissions
+                if permisos_previos is None:
+                    await update.message.reply_text(
+                        "❌ No pude obtener los permisos del grupo; no se consumió la bola mordaza."
+                    )
+                    return
+            else:
                 await update.message.reply_text(
                     "❌ El usuario no es un miembro silenciable de este grupo; no se consumió la bola mordaza."
-                )
-                return
-
-            info_chat = await context.bot.get_chat(chat.id)
-            permisos_previos = info_chat.permissions
-            if permisos_previos is None:
-                await update.message.reply_text(
-                    "❌ No pude obtener los permisos del grupo; no se consumió la bola mordaza."
                 )
                 return
 
