@@ -210,7 +210,7 @@ async def mostrar_item(id_item, descripcion, update: Update, context: ContextTyp
     texto_item = (
         f"📦 *{item_nombre}*\n"
         f"💬 {descripcion}\n"
-        f"💲 Precio: {item_precio} COP"
+        f"💲 Precio: {item_precio} Pipesos"
     )
 
     botonera = InlineKeyboardMarkup([

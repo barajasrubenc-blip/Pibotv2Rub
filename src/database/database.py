@@ -199,7 +199,7 @@ def seed_items():
         },
         {
             "nombre": "Bola mordaza",
-            "precio": 1000,
+            "precio": 3000,
             "imagen": "img_items/bola_mordaza.png",
             "descripcion": "Para cuando alguien habla demasiado",
             "mensaje": "🤏 {sender_username} Le ha puesto una bola mordaza a {receptor_username}\n Que bien te ves sin poder hablar 😖",
