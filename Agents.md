@@ -172,7 +172,7 @@ Role values: **1** = Usuario, **2** = Admin, **3** = BotMaster
 | Latigo | 150 | img_items/latigo.png | Whip for misbehavers |
 | Fusta | 120 | img_items/fusta.png | Training crop |
 | Galleta | 50 | img_items/galleta.png | Cookie reward |
-| Bola mordaza | 1000 | img_items/bola_mordaza.png | Silences its target for 10 seconds when used in a supergroup |
+| Bola mordaza | 1000 | img_items/bola_mordaza.png | Silences its target for 60 seconds when used in a supergroup |
 | Sorpresa | 300 | img_items/sorpresa.jpg | Mystery item |
 
 ---
@@ -291,7 +291,7 @@ PTB processes handlers by group number. Lower groups run first. A handler in gro
 - **Exports:** `inventario`, `inventario_callback`, `usar`
 - **Private-chat only** (same deep-link pattern as tienda).
 - **Paginated** item viewer (one item per page with prev/next buttons).
-- `/usar <item_name> @user` — decrements quantity and sends a random GIF from `gifs_items/`. Using `Bola mordaza` in a supergroup silences the target for 10 seconds; the bot needs permission to restrict members.
+- `/usar <item_name> @user` — decrements quantity and sends a random GIF from `gifs_items/`. Using `Bola mordaza` in a supergroup silences the target for 60 seconds; the bot needs permission to restrict members.
 - **Callback patterns:** `inv_prev_<page>`, `inv_next_<page>`, `ver_item_<id>`
 - **DB imports:** `get_items`, `get_campo_item`, `get_id_item`, `get_campo_usuario`, `insert_user`, `normalizar_nombre`, `get_cantidad_item_inventario`, `update_cantidad`, `delete_item_user`
 

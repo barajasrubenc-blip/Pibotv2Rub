@@ -39,7 +39,7 @@ async def _restaurar_permisos_despues_de_silencio(
 ) -> None:
     task = asyncio.current_task()
     try:
-        await asyncio.sleep(10)
+        await asyncio.sleep(60)
         await application.bot.restrict_chat_member(
             chat_id=chat_id,
             user_id=user_id,
@@ -340,7 +340,7 @@ async def usar(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 chat_id=chat.id,
                 user_id=receptor.id,
                 permissions=ChatPermissions(can_send_messages=False),
-                until_date=datetime.now(timezone.utc) + timedelta(seconds=30),
+                until_date=datetime.now(timezone.utc) + timedelta(seconds=70),
             )
         except TelegramError as exc:
             print(f"[WARNING] No se pudo silenciar al usuario {receptor.id}: {exc}")
