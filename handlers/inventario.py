@@ -300,6 +300,11 @@ async def usar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         try:
             miembro = await context.bot.get_chat_member(chat.id, receptor.id)
+            print(
+                "[DEBUG] Bola mordaza get_chat_member: "
+                f"status={miembro.status}, "
+                f"is_member={getattr(miembro, 'is_member', None)}"
+            )
             if miembro.status in ("administrator", "creator"):
                 await update.message.reply_text(
                     "❌ No se puede silenciar a un administrador; no se consumió la bola mordaza."
